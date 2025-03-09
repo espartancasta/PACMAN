@@ -1,5 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:pacman/path.dart';
 import 'package:pacman/pixel.dart';
+import 'package:pacman/player.dart';
+import 'dart:math';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -9,8 +13,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   static int numberInRow = 11;
-  final int numberOfSquares = numberInRow * 17;
-  List<int> barries = [
+  int numberOfSquares = numberInRow * 17;
+  int player = numberInRow * 2 + 5;
+  static List<int> barriers = [
     0,
     1,
     2,
@@ -112,6 +117,88 @@ class _HomePageState extends State<HomePage> {
     158,
     160
   ];
+
+  List<int> food = [];
+  String direction = "right";
+  bool preGame = true;
+  bool mouthClosed = false;
+  int score = 0;
+  int ghost = numberInRow * 5 + 5;
+
+  void startGame() {
+    preGame = false;
+    getFood();
+    Timer.periodic(Duration(milliseconds: 177), (timer) {
+      setState(() {
+        if (food.contains(player)) {
+          food.remove(player);
+          score++; // Solo suma si el jugador recoge comida
+        }
+      });
+
+      if (player == ghost) {
+        setState(() {
+          ghost = -1; // Desaparece el fantasma o indica colisión
+        });
+      }
+
+      switch (direction) {
+        case "left":
+          moveLeft();
+          break;
+        case "right":
+          moveRight();
+          break;
+        case "up":
+          moveUp();
+          break;
+        case "down":
+          moveDown();
+          break;
+      }
+    });
+  }
+
+  void getFood() {
+    for (int i = 0; i < numberOfSquares; i++) {
+      if (!barriers.contains(i)) {
+        food.add(i);
+      }
+    }
+  }
+
+  void moveLeft() {
+    if (!barriers.contains(player - 1)) {
+      setState(() {
+        player--;
+      });
+    }
+  }
+
+  void moveRight() {
+    if (!barriers.contains(player + 1)) {
+      setState(() {
+        player++;
+      });
+    }
+  }
+
+  void moveUp() {
+    if (!barriers.contains(player - numberInRow)) {
+      setState(() {
+        player -= numberInRow;
+      });
+    }
+  }
+
+  void moveDown() {
+    if (!barriers.contains(player + numberInRow)) {
+      setState(() {
+        player += numberInRow;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,43 +206,83 @@ class _HomePageState extends State<HomePage> {
       body: Column(
         children: [
           Expanded(
-            flex: 10,
-            child: GridView.builder(
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: numberOfSquares,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: numberInRow,
-              ),
-              itemBuilder: (BuildContext context, int index) {
-                if (barries.contains(index)) {
-                  MyPixel()
-                } else {
-                  return Padding(
-                    padding: const EdgeInsets.all(1.0),
-                    child: Container(
-                      color: Colors.grey,
-                      child: Center(
-                        child: Text(index.toString()),
-                      ),
-                    ),
-                  );
+            flex: 20,
+            child: GestureDetector(
+              onVerticalDragUpdate: (details) {
+                if (details.delta.dy > 0) {
+                  direction = "down";
+                } else if (details.delta.dy < 0) {
+                  direction = "up";
                 }
               },
+              onHorizontalDragUpdate: (details) {
+                if (details.delta.dx > 0) {
+                  direction = "right";
+                } else if (details.delta.dx < 0) {
+                  direction = "left";
+                }
+              },
+              child: Container(
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: numberOfSquares,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: numberInRow,
+                  ),
+                  itemBuilder: (BuildContext context, int index) {
+                    if (player == index) {
+                      switch (direction) {
+                        case "left":
+                          return Transform.rotate(angle: pi, child: MyPlayer());
+                        case "right":
+                          return MyPlayer();
+                        case "up":
+                          return Transform.rotate(
+                              angle: pi / 2, child: MyPlayer());
+                        case "down":
+                          return Transform.rotate(
+                              angle: 3 * pi / 2, child: MyPlayer());
+                      }
+                      return MyPlayer();
+                    } else if (barriers.contains(index)) {
+                      return MyPixel(
+                        innerColor: Colors.blue,
+                        outerColor: Colors.blue,
+                      );
+                    } else if (food.contains(index)) {
+                      return MyPath(
+                        innerColor: Colors.yellow,
+                        outerColor: Colors.black,
+                      );
+                    } else {
+                      return MyPath(
+                        innerColor: Colors.black,
+                        outerColor: Colors.black,
+                      );
+                    }
+                  },
+                ),
+              ),
             ),
           ),
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Text(
-                  "Score:",
-                  style: TextStyle(color: Colors.white, fontSize: 40),
-                ),
-                Text(
-                  "P L A Y",
-                  style: TextStyle(color: Colors.white, fontSize: 40),
-                ),
-              ],
+            child: Container(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Text(
+                    "Score: " + score.toString(),
+                    style: TextStyle(color: Colors.white, fontSize: 40),
+                  ),
+                  GestureDetector(
+                    onTap: startGame,
+                    child: Text(
+                      "P L A Y",
+                      style: TextStyle(color: Colors.white, fontSize: 40),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
