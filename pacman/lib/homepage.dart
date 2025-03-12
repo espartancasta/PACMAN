@@ -281,7 +281,7 @@ class _HomePageState extends State<HomePage> {
     });
 
     // Temporizador para mover al fantasma con menor velocidad
-    ghostTimer = Timer.periodic(Duration(milliseconds: 777), (timer) {
+    ghostTimer = Timer.periodic(Duration(milliseconds: 999), (timer) {
       // `ghostTimer`: Variable que almacena el temporizador del fantasma.
       // `=`: Asigna un nuevo valor a la variable.
       // `Timer.periodic`: Crea un temporizador que se ejecuta repetidamente.
